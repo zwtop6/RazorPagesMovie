@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using RazorPagesMovie.Data;
 using RazorPagesMovie.Models;
@@ -21,11 +22,36 @@ namespace RazorPagesMovie.Pages.Movies
 
         public IList<Movie> Movie { get; set; }
 
-        //初始化页面状态
+        [BindProperty(SupportsGet = true)]
+        public string SearchString { get; set; }
+
+        public SelectList Genres { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public string MovieGenre { get; set; }
+
         public async Task OnGetAsync()
         {
-            //获得列表并显示出来
-            Movie = await _context.Movie.ToListAsync();
+            IQueryable<string> genreQuery = from m in _context.Movie
+                                            orderby m.Genre
+                                            select m.Genre;
+
+            var movies = from m in _context.Movie
+                         select m;
+
+            if (!string.IsNullOrEmpty(SearchString))
+            {
+                movies = movies.Where(s => s.Title.Contains(SearchString));
+            }
+
+            if (!string.IsNullOrEmpty(MovieGenre))
+            {
+                movies = movies.Where(x => x.Genre == MovieGenre);
+            }
+
+            //Distinct返回队列中的非重复元素
+            Genres = new SelectList(await genreQuery.Distinct().ToListAsync());
+            Movie = await movies.ToListAsync();
         }
     }
 }
